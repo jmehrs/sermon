@@ -1,0 +1,9 @@
+[package]
+name = "sermon"
+version = "0.1.0"
+edition = "2021"
+description = "Service Monitor (SerMon) is a service that monitors other services via SNMP, REST, and Logs"
+
+[dependencies]
+leptos = "0.2.5"  # defaults to csr
+leptos_router = { version = "0.2.5", features = ["csr"] }
