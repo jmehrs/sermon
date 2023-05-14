@@ -1,5 +1,6 @@
 use leptos::*;
 use leptos_router::*;
+use sermon::navbar::*;
 
 fn main() {
     leptos::mount_to_body(|cx| view! { cx, <App/> })
@@ -9,8 +10,16 @@ fn main() {
 fn App(cx: Scope) -> impl IntoView {
     view! { cx,
         <Router>
-            <header> "Header" </header>
-            <nav> "Nav" </nav>
+            <Navbar arrangement=GroupArrangement::MiddleOut>
+                <NavGroup slot>
+                    <A href="" class="rounded-full hover:bg-gray-300">
+                        <img src="./public/icon_small.png" />
+                    </A>
+                </NavGroup>
+                <NavGroup slot> <Breadcrumbs /> </NavGroup>
+                <NavGroup slot> <Menu /> </NavGroup>
+                <NavGroup slot> "" </NavGroup>
+            </Navbar>
             <main>
                 <Routes>
                     <Route path="" view=move |cx| view! { cx, <Home/> }/>
@@ -68,15 +77,14 @@ fn Settings(cx: Scope) -> impl IntoView {
 
 #[derive(Params, PartialEq, Debug)]
 struct DeviceParams {
-    id: usize
+    id: usize,
 }
 
 #[component]
 fn DeviceProfile(cx: Scope) -> impl IntoView {
     let params = use_params::<DeviceParams>(cx);
-    let id = move || { 
-        params.with(|params| params.as_ref().map(|params| params.id).unwrap_or_default())
-    };
+    let id =
+        move || params.with(|params| params.as_ref().map(|params| params.id).unwrap_or_default());
 
     view! { cx,
         <h2> "Device Number" {id} </h2>
