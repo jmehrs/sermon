@@ -5,5 +5,8 @@ edition = "2021"
 description = "Service Monitor (SerMon) is a service that monitors other services via SNMP, REST, and Logs"
 
 [dependencies]
+console_error_panic_hook = "0.1.7"
+console_log = "1.0.0"
 leptos = "0.3.0"  # defaults to csr
 leptos_router = { version = "0.3.0", features = ["csr"] }
+log = "0.4.17"
