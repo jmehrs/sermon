@@ -42,6 +42,9 @@ fn App(cx: Scope) -> impl IntoView {
                     <Route path="*" view=move |cx| view! { cx, <p> "/!\\ Page not found /!\\" </p> }/>
                 </Routes>
             </main>
+            <footer class="flex p-4 w-full bottom-0 absolute justify-center items-center">
+                <p class="text-gray-900">"Service Monitor (SerMon) | 🤖"</p>
+            </footer>
         </Router>
     }
 }
