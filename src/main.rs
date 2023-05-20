@@ -1,109 +1,44 @@
-use leptos::*;
-use leptos_router::*;
-use sermon::navbar::*;
-use sermon::settings::*;
+#[cfg(feature = "ssr")]
+#[tokio::main]
+async fn main() {
+    use axum::{extract::Extension, routing::post, Router};
+    use leptos::*;
+    use leptos_axum::{generate_route_list, LeptosRoutes};
+    use sermon::front::app::*;
+    use sermon::fileserv::file_and_error_handler;
+    use std::sync::Arc;
 
-fn main() {
-    let _ = console_log::init_with_level(log::Level::Debug);
-    console_error_panic_hook::set_once();
-    leptos::mount_to_body(|cx| view! { cx, <App/> })
+    simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
+
+    // Setting get_configuration(None) means we'll be using cargo-leptos's env values
+    // For deployment these variables are:
+    // <https://github.com/leptos-rs/start-axum#executing-a-server-on-a-remote-machine-without-the-toolchain>
+    // Alternately a file can be specified such as Some("Cargo.toml")
+    // The file would need to be included with the executable when moved to deployment
+    let conf = get_configuration(None).await.unwrap();
+    let leptos_options = conf.leptos_options;
+    let addr = leptos_options.site_addr;
+    let routes = generate_route_list(|cx| view! { cx, <App/> }).await;
+
+    // build our application with a route
+    let app = Router::new()
+        .route("/api/*fn_name", post(leptos_axum::handle_server_fns))
+        .leptos_routes(leptos_options.clone(), routes, |cx| view! { cx, <App/> })
+        .fallback(file_and_error_handler)
+        .layer(Extension(Arc::new(leptos_options)));
+
+    // run our app with hyper
+    // `axum::Server` is a re-export of `hyper::Server`
+    log!("listening on http://{}", &addr);
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }
 
-#[component]
-fn App(cx: Scope) -> impl IntoView {
-    view! { cx,
-        <Router>
-            <main class="flex flex-col h-screen">
-                <Navbar arrangement=GroupArrangement::MiddleOut>
-                    <NavGroup slot>
-                        <A href="" class="rounded-full hover:bg-gray-300">
-                            <img src="./public/icon_small.png" />
-                        </A>
-                    </NavGroup>
-                    <NavGroup slot> <Breadcrumbs /> </NavGroup>
-                    <NavGroup slot> <Menu /> </NavGroup>
-                    <NavGroup slot> "" </NavGroup>
-                </Navbar>
-                <div class="flex-1">
-                    <Routes>
-                        <Route path="" view=move |cx| view! { cx, <Home/> }/>
-                        <Route path="devices" view=move |cx| view! { cx, <Devices/> }>
-                            <Route path=":id" view=move |cx| view! { cx, <DeviceProfile/> }/>
-                            <Route path="" view=move |cx| view! { cx, <p> "Select a device for more info" </p> }/>
-                        </Route>
-                        <Route path="services" view=move |cx| view! { cx, <Services/> }>
-                            <Route path="snmp" view=move |cx| view! { cx, <SnmpService/> }/>
-                            <Route path="logs" view=move |cx| view! { cx, <LogsService/> }/>
-                            <Route path="" view=move |cx| view! { cx, <p> "Select a service for more info" </p> }/>
-                        </Route>
-                        <Route path="settings" view=move |cx| view! { cx, <Settings/> }>
-                            <Route path="general" view=move |cx| view! { cx, <GeneralSettings/> }/>
-                            <Route path="profile" view=move |cx| view! { cx, <UserProfile/> }/>
-                            <Route path="metrics-sharing" view=move |cx| view! { cx, <MetricsSharing/> }/>
-                            <Route path="" view=move |cx| view! { cx, <Redirect path="general"/> }/>
-                        </Route>
-                        <Route path="*" view=move |cx| view! { cx, <p> "/!\\ Page not found /!\\" </p> }/>
-                    </Routes>
-                </div>
-                <footer class="flex p-4 w-full bottom-0 justify-center items-center">
-                    <p class="text-gray-900">"Service Monitor (SerMon) | 🤖"</p>
-                </footer>
-            </main>
-            
-        </Router>
-    }
-}
-
-#[component]
-fn Home(cx: Scope) -> impl IntoView {
-    view! { cx,
-        <h2> "Home" </h2>
-    }
-}
-
-#[component]
-fn Devices(cx: Scope) -> impl IntoView {
-    view! { cx,
-        <h2> "Devices" </h2>
-        <Outlet/>  // Insert nested child route here
-    }
-}
-
-#[component]
-fn Services(cx: Scope) -> impl IntoView {
-    view! { cx,
-        <h2> "Services" </h2>
-        <Outlet/>  // Insert nested child route here
-    }
-}
-
-
-#[derive(Params, PartialEq, Debug)]
-struct DeviceParams {
-    id: usize,
-}
-
-#[component]
-fn DeviceProfile(cx: Scope) -> impl IntoView {
-    let params = use_params::<DeviceParams>(cx);
-    let id =
-        move || params.with(|params| params.as_ref().map(|params| params.id).unwrap_or_default());
-
-    view! { cx,
-        <h2> "Device Number" {id} </h2>
-    }
-}
-
-#[component]
-fn SnmpService(cx: Scope) -> impl IntoView {
-    view! { cx,
-        <h2> "SNMP Service" </h2>
-    }
-}
-
-#[component]
-fn LogsService(cx: Scope) -> impl IntoView {
-    view! { cx,
-        <h2> "Logs Service" </h2>
-    }
+#[cfg(not(feature = "ssr"))]
+pub fn main() {
+    // no client-side main function
+    // unless we want this to work with e.g., Trunk for a purely client-side app
+    // see lib.rs for hydration function instead
 }
