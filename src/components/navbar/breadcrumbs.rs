@@ -26,7 +26,7 @@ fn parse_path(path: String) -> Vec<PathParts> {
                 .collect::<Vec<String>>()
                 .join("/");
             acc.push(PathParts {
-                name: capitalize(name),
+                name: capitalize(&name.replace("-", " ")),
                 path,
             });
             acc

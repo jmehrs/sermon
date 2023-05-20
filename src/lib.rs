@@ -1,2 +1,2 @@
 mod components;
-pub use components::navbar;
+pub use components::{navbar, routes::settings};
