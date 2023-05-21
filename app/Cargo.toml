@@ -1,0 +1,22 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+leptos.workspace = true
+leptos_meta = { version = "0.3", default-features = false }
+leptos_router = { version = "0.3", default-features = false }
+leptos_axum = { workspace = true, optional = true }
+
+http = "0.2.9"
+cfg-if = "1.0.0"
+thiserror = "1.0.40"
+
+[features]
+default = []
+hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
+ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "dep:leptos_axum"]
+
