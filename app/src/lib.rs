@@ -1,7 +1,11 @@
-use crate::front::{navbar::*, settings::*};
+// use app::components::{navbar::*, settings::*};
+mod components;
+pub mod error_template;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+
+use components::{navbar::*, routes::settings::*};
 
 
 #[component]

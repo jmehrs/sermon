@@ -1,13 +1,14 @@
-#[cfg(feature = "ssr")]
+use app::*;
+use axum::{extract::Extension, routing::post, Router};
+use fileserv::file_and_error_handler;
+use leptos::*;
+use leptos_axum::{generate_route_list, LeptosRoutes};
+use std::sync::Arc;
+
+pub mod fileserv;
+
 #[tokio::main]
 async fn main() {
-    use axum::{extract::Extension, routing::post, Router};
-    use leptos::*;
-    use leptos_axum::{generate_route_list, LeptosRoutes};
-    use sermon::front::app::*;
-    use sermon::fileserv::file_and_error_handler;
-    use std::sync::Arc;
-
     simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
 
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
@@ -34,11 +35,4 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
-}
-
-#[cfg(not(feature = "ssr"))]
-pub fn main() {
-    // no client-side main function
-    // unless we want this to work with e.g., Trunk for a purely client-side app
-    // see lib.rs for hydration function instead
 }
