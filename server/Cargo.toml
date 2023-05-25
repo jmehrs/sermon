@@ -12,6 +12,8 @@ leptos_axum.workspace = true
 
 axum.workspace = true
 simple_logger.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
 tokio.workspace = true
 tower.workspace = true
 tower-http.workspace = true
