@@ -19,7 +19,9 @@ console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
 http = "0.2.9"
 log = "0.4.17"
+serde = { version = "1.0.163", features = ["derive"] }
 simple_logger = "4.1.0"
+sqlx = { version = "0.6.3", default-features = false, features = [ "runtime-tokio-rustls", "sqlite", "migrate", "macros", "uuid", "chrono" ]}
 thiserror = "1.0.40"
 tokio = { version = "1.26.0", features = ["full"] }
 tower = { version = "0.4.13", features = ["full"] }

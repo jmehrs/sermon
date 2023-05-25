@@ -1,12 +1,20 @@
 // use app::components::{navbar::*, settings::*};
 mod components;
 pub mod error_template;
+use cfg_if::cfg_if;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
 use components::{navbar::*, routes::settings::*};
 
+cfg_if! {
+    if #[cfg(feature = "ssr")] {
+        pub fn register_server_functions() {
+            _ = ReadPosts::register();
+        }
+    }
+}
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {

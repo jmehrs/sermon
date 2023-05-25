@@ -1,32 +1,83 @@
 use app::*;
-use axum::{extract::Extension, routing::post, Router};
+use axum::{extract::{Extension, Path, RawQuery}, routing::{post, get}, Router, response::{IntoResponse, Response}, http::{HeaderMap, Request}, body::Body as AxumBody};
 use fileserv::file_and_error_handler;
 use leptos::*;
-use leptos_axum::{generate_route_list, LeptosRoutes};
+use leptos_axum::{generate_route_list, LeptosRoutes, handle_server_fns_with_context};
 use std::sync::Arc;
+use sqlx::{Pool, sqlite::{SqlitePoolOptions, SqliteConnectOptions, Sqlite}};
+use std::str::FromStr;
+use thiserror::Error;
 
 pub mod fileserv;
 
+async fn server_fn_handler(
+    Extension(pool): Extension<Pool<Sqlite>>,
+    path: Path<String>,
+    headers: HeaderMap,
+    raw_query: RawQuery,
+    request: Request<AxumBody>
+) -> impl IntoResponse {
+    handle_server_fns_with_context(
+        path,
+        headers,
+        raw_query,
+        move |cx| provide_context(cx, pool.clone()),
+        request
+    ).await
+}
+
+async fn leptos_route_handler(
+    Extension(options): Extension<Arc<LeptosOptions>>,
+    Extension(pool): Extension<Pool<Sqlite>>,
+    req: Request<AxumBody>
+) -> Response {
+    let handler = leptos_axum::render_app_async_with_context(
+        (*options).clone(),
+        move |cx| provide_context(cx, pool.clone()),
+        |cx| view! { cx, <App/> }
+    );
+    handler(req).await.into_response()
+}
+
+#[derive(Error, Debug)]
+pub enum ApplicationError {
+    #[error("Error connecting to the DB")]
+    DBConectionError(#[from] sqlx::Error),
+    #[error("Error migrating the DB")]
+    DBMigrationError(#[from] sqlx::migrate::MigrateError),
+}
+
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), ApplicationError> {
+    // Start up a basic logger
     simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
 
-    // Setting get_configuration(None) means we'll be using cargo-leptos's env values
-    // For deployment these variables are:
-    // <https://github.com/leptos-rs/start-axum#executing-a-server-on-a-remote-machine-without-the-toolchain>
-    // Alternately a file can be specified such as Some("Cargo.toml")
-    // The file would need to be included with the executable when moved to deployment
+    // Establish connection to the DB
+    let pool = {
+        let options = SqliteConnectOptions::from_str("sqlite:data.db")?
+            .create_if_missing(true);
+        SqlitePoolOptions::new()
+            .max_connections(5)
+            .connect_with(options)
+            .await?
+    };
+    sqlx::migrate!("../migrations").run(&pool).await?;
+
+    // Register app server functions
+    register_server_functions();
+
     let conf = get_configuration(None).await.unwrap();
-    let leptos_options = conf.leptos_options;
+    let leptos_options = Arc::new(conf.leptos_options);
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(|cx| view! { cx, <App/> }).await;
 
     // build our application with a route
     let app = Router::new()
-        .route("/api/*fn_name", post(leptos_axum::handle_server_fns))
-        .leptos_routes(leptos_options.clone(), routes, |cx| view! { cx, <App/> })
+        .route("/api/*fn_name", post(server_fn_handler))
+        .leptos_routes_with_handler(routes, get(leptos_route_handler))
         .fallback(file_and_error_handler)
-        .layer(Extension(Arc::new(leptos_options)));
+        .layer(Extension(pool))
+        .layer(Extension(leptos_options));
 
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
@@ -35,4 +86,5 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
+    Ok(())
 }
